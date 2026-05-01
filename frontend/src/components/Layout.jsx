@@ -23,7 +23,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen overflow-x-hidden bg-slate-50">
       <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b">
         <div className="flex items-center gap-2">
           <img src={logo} alt="Inventory App Logo" className="h-8 w-8 rounded-lg object-cover" />
@@ -33,7 +33,7 @@ export default function Layout() {
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
-      <div className="flex relative">
+      <div className="relative flex w-full overflow-x-hidden">
         {open ? (
           <button
             className="fixed inset-0 z-40 bg-black/40 lg:hidden"
@@ -84,7 +84,7 @@ export default function Layout() {
             </button>
           </div>
         </aside>
-        <main className="flex-1 p-4 lg:p-6">
+        <main className="w-full min-w-0 flex-1 p-4 lg:p-6">
           <Outlet />
         </main>
       </div>
