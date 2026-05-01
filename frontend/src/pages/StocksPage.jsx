@@ -111,42 +111,45 @@ export default function StocksPage() {
           setOpen(true);
         }}
         onDelete={remove}
+        toolbarPlacement="below-title"
         toolbarActions={
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <a
-              href="/templates/stock-import-template.xlsx"
-              download
-              className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm"
-            >
-              <Download size={16} />
-              Download Template
-            </a>
-            <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+          <div className="flex w-full flex-col gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+              <a
+                href="/templates/stock-import-template.xlsx"
+                download
+                className="inline-flex items-center justify-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm sm:whitespace-nowrap"
+              >
+                <Download size={16} />
+                Download Template
+              </a>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                onChange={importExcel}
+                disabled={uploading}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-2 text-sm text-white sm:whitespace-nowrap disabled:opacity-50"
+              >
+                <Upload size={16} />
+                {uploading ? "Mengunggah..." : "Upload Excel"}
+              </button>
+            </div>
+            <label className="inline-flex items-start gap-2 text-xs leading-5 text-slate-600 sm:max-w-md sm:items-center">
               <input
                 type="checkbox"
                 checked={syncReplaceAll}
                 onChange={(e) => setSyncReplaceAll(e.target.checked)}
-                className="rounded"
+                className="mt-0.5 rounded sm:mt-0"
               />
-              Sinkron penuh (hapus SKU yang tidak ada di file)
+              <span>Sinkron penuh (hapus SKU yang tidak ada di file)</span>
             </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              onChange={importExcel}
-              disabled={uploading}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
-            >
-              <Upload size={16} />
-              {uploading ? "Mengunggah..." : "Upload Excel"}
-            </button>
           </div>
         }
       />

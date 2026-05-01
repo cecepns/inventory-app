@@ -12,6 +12,7 @@ export default function ModuleTable({
   onDelete,
   renderCell,
   toolbarActions,
+  toolbarPlacement = "inline",
 }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
@@ -34,25 +35,33 @@ export default function ModuleTable({
 
   return (
     <div className="w-full max-w-full rounded-xl border bg-white p-4 shadow-sm">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4">
         <h2 className="text-xl font-semibold">{title}</h2>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
-          {toolbarActions}
-          <div className="relative w-full sm:w-auto">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="w-full rounded-lg border py-2 pl-9 pr-3 text-sm sm:w-56"
-            />
+        <div className="mt-3 flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+          {toolbarPlacement === "below-title" ? (
+            <div className="w-full sm:w-auto">{toolbarActions}</div>
+          ) : (
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+              {toolbarActions}
+            </div>
+          )}
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="w-full rounded-lg border py-2 pl-9 pr-3 text-sm sm:w-56"
+              />
+            </div>
+            <button
+              onClick={onAdd}
+              className="rounded-lg bg-brand-500 px-3 py-2 text-sm text-white sm:whitespace-nowrap"
+            >
+              + Tambah
+            </button>
           </div>
-          <button
-            onClick={onAdd}
-            className="rounded-lg bg-brand-500 px-3 py-2 text-sm text-white sm:whitespace-nowrap"
-          >
-            + Tambah
-          </button>
         </div>
       </div>
 
