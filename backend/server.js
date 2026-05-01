@@ -13,7 +13,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "inventory-secret";
 const MAX_PAGE_SIZE = 10;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "5mb" }));
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
@@ -240,6 +240,100 @@ app.post("/api/stocks", auth, allowFeature("stock"), async (req, res) => {
     [item_name, sku, Number(quantity || 0), Number(min_stock || 0), unit || "pcs"]
   );
   res.status(201).json({ message: "Stock created" });
+});
+app.post("/api/stocks/bulk-upsert", auth, allowFeature("stock"), async (req, res, next) => {
+  const rawRows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+  const replaceAll = Boolean(req.body?.replaceAll);
+
+  if (rawRows.length === 0) {
+    return res.status(400).json({ message: "Rows are required" });
+  }
+
+  const invalidRows = [];
+  const normalizedRows = rawRows.map((row, index) => {
+    const itemName = String(row?.item_name || "").trim();
+    const sku = String(row?.sku || "").trim();
+    const quantity = Number(row?.quantity ?? 0);
+    const minStock = Number(row?.min_stock ?? 0);
+    const unit = String(row?.unit || "pcs").trim() || "pcs";
+
+    if (!itemName || !sku || !Number.isFinite(quantity) || !Number.isFinite(minStock)) {
+      invalidRows.push(index + 1);
+    }
+
+    return {
+      item_name: itemName,
+      sku,
+      quantity: Math.max(0, Math.trunc(quantity || 0)),
+      min_stock: Math.max(0, Math.trunc(minStock || 0)),
+      unit,
+    };
+  });
+
+  if (invalidRows.length > 0) {
+    return res.status(400).json({
+      message: `Invalid data on rows: ${invalidRows.slice(0, 20).join(", ")}`,
+    });
+  }
+
+  const uniqueRowsBySku = Array.from(
+    new Map(normalizedRows.map((row) => [row.sku.toLowerCase(), row])).values()
+  );
+  const skus = uniqueRowsBySku.map((row) => row.sku);
+  const placeholders = skus.map(() => "?").join(", ");
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [existingRows] = await connection.query(
+      `SELECT sku FROM stocks WHERE sku IN (${placeholders})`,
+      skus
+    );
+    const existingSkuSet = new Set(existingRows.map((row) => String(row.sku).toLowerCase()));
+
+    for (const row of uniqueRowsBySku) {
+      await connection.query(
+        `INSERT INTO stocks (item_name, sku, quantity, min_stock, unit)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           item_name = VALUES(item_name),
+           quantity = VALUES(quantity),
+           min_stock = VALUES(min_stock),
+           unit = VALUES(unit)`,
+        [row.item_name, row.sku, row.quantity, row.min_stock, row.unit]
+      );
+    }
+
+    let removed = 0;
+    if (replaceAll) {
+      const [deleteResult] = await connection.query(
+        `DELETE FROM stocks WHERE sku NOT IN (${placeholders})`,
+        skus
+      );
+      removed = Number(deleteResult.affectedRows || 0);
+    }
+
+    await connection.commit();
+
+    const updated = uniqueRowsBySku.filter((row) => existingSkuSet.has(row.sku.toLowerCase())).length;
+    const inserted = uniqueRowsBySku.length - updated;
+
+    return res.json({
+      message: "Stock import completed",
+      summary: {
+        totalRows: uniqueRowsBySku.length,
+        inserted,
+        updated,
+        removed,
+      },
+    });
+  } catch (error) {
+    await connection.rollback();
+    return next(error);
+  } finally {
+    connection.release();
+  }
 });
 app.put("/api/stocks/:id", auth, allowFeature("stock"), async (req, res) => {
   const { item_name, sku, quantity, min_stock, unit } = req.body;

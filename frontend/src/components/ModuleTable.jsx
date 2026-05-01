@@ -11,6 +11,7 @@ export default function ModuleTable({
   onEdit,
   onDelete,
   renderCell,
+  toolbarActions,
 }) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
@@ -35,7 +36,8 @@ export default function ModuleTable({
     <div className="w-full max-w-full rounded-xl border bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-semibold">{title}</h2>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+          {toolbarActions}
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
             <input

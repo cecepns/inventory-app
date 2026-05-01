@@ -6,6 +6,7 @@ Fullstack aplikasi inventory + produksi:
 
 ## Fitur
 - Kontrol stock
+- Import/update stock via Excel (`.xlsx`/`.csv`) dengan upsert berdasarkan SKU
 - Planning / perencanaan produksi
 - Monitoring produksi (efisiensi)
 - Analisis & pelaporan (dashboard)
@@ -36,6 +37,10 @@ Default admin otomatis dibuat:
    - `cd frontend`
    - `npm install`
    - `npm run dev`
+
+Template import stock tersedia di:
+- `frontend/public/templates/stock-import-template.xlsx`
+- `frontend/public/templates/stock-import-template.csv`
 
 ## Build
 - Frontend: `cd frontend && npm run build`

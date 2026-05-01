@@ -1,0 +1,4 @@
+item_name,sku,quantity,min_stock,unit
+Bahan A,SKU-001,120,30,pcs
+Bahan B,SKU-002,80,20,kg
+Bahan C,SKU-003,45,10,box

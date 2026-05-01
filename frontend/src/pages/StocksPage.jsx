@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { Download, Upload } from "lucide-react";
+import { useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import Modal from "../components/Modal";
 import ModuleTable from "../components/ModuleTable";
 import api from "../lib/api";
@@ -9,6 +11,9 @@ export default function StocksPage() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState(initialForm);
+  const [syncReplaceAll, setSyncReplaceAll] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const fetchData = async (params) => (await api.get("/stocks", { params })).data;
 
@@ -24,6 +29,68 @@ export default function StocksPage() {
     if (confirm("Hapus data ini?")) {
       await api.delete(`/stocks/${id}`);
       window.location.reload();
+    }
+  };
+
+  const parseStockSheet = (rows) =>
+    rows
+      .map((raw) => {
+        const normalized = Object.fromEntries(
+          Object.entries(raw || {}).map(([key, value]) => [String(key).trim().toLowerCase(), value])
+        );
+
+        return {
+          item_name: String(normalized.item_name || "").trim(),
+          sku: String(normalized.sku || "").trim(),
+          quantity: Number(normalized.quantity ?? 0),
+          min_stock: Number(normalized.min_stock ?? 0),
+          unit: String(normalized.unit || "pcs").trim() || "pcs",
+        };
+      })
+      .filter((row) => row.item_name && row.sku && Number.isFinite(row.quantity) && Number.isFinite(row.min_stock))
+      .map((row) => ({
+        ...row,
+        quantity: Math.max(0, Math.trunc(row.quantity)),
+        min_stock: Math.max(0, Math.trunc(row.min_stock)),
+      }));
+
+  const importExcel = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      const normalizedRows = parseStockSheet(rows);
+
+      if (normalizedRows.length === 0) {
+        alert("File tidak valid. Pastikan kolom: item_name, sku, quantity, min_stock, unit.");
+        return;
+      }
+
+      const response = await api.post("/stocks/bulk-upsert", {
+        rows: normalizedRows,
+        replaceAll: syncReplaceAll,
+      });
+
+      const summary = response.data?.summary;
+      alert(
+        `Import selesai.\n` +
+          `Total: ${summary?.totalRows ?? normalizedRows.length}\n` +
+          `Insert: ${summary?.inserted ?? 0}\n` +
+          `Update: ${summary?.updated ?? 0}\n` +
+          `Dihapus: ${summary?.removed ?? 0}`
+      );
+      window.location.reload();
+    } catch (error) {
+      alert(error?.response?.data?.message || "Gagal import Excel stock");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
     }
   };
 
@@ -44,6 +111,44 @@ export default function StocksPage() {
           setOpen(true);
         }}
         onDelete={remove}
+        toolbarActions={
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <a
+              href="/templates/stock-import-template.xlsx"
+              download
+              className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm"
+            >
+              <Download size={16} />
+              Download Template
+            </a>
+            <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={syncReplaceAll}
+                onChange={(e) => setSyncReplaceAll(e.target.checked)}
+                className="rounded"
+              />
+              Sinkron penuh (hapus SKU yang tidak ada di file)
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={importExcel}
+              disabled={uploading}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm disabled:opacity-50"
+            >
+              <Upload size={16} />
+              {uploading ? "Mengunggah..." : "Upload Excel"}
+            </button>
+          </div>
+        }
       />
       <Modal open={open} onClose={() => setOpen(false)} title={editId ? "Edit Stock" : "Tambah Stock"}>
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={save}>
