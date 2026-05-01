@@ -35,17 +35,20 @@ export default function ModuleTable({
     <div className="rounded-xl border bg-white p-4 shadow-sm">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-semibold">{title}</h2>
-        <div className="flex gap-2">
-          <div className="relative">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search..."
-              className="w-56 rounded-lg border py-2 pl-9 pr-3 text-sm"
+              className="w-full rounded-lg border py-2 pl-9 pr-3 text-sm sm:w-56"
             />
           </div>
-          <button onClick={onAdd} className="rounded-lg bg-brand-500 px-3 py-2 text-sm text-white">
+          <button
+            onClick={onAdd}
+            className="rounded-lg bg-brand-500 px-3 py-2 text-sm text-white sm:whitespace-nowrap"
+          >
             + Tambah
           </button>
         </div>
